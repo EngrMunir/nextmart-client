@@ -14,25 +14,25 @@ import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import Link from "next/link";
 import Logo from "@/app/assets/svgs/Logo";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registrationSchema } from "./registrationValidation";
-import { registerUser } from "@/services/AuthService";
+import { loginUser, reCaptchaTokenVerification } from "@/services/AuthService";
 import { toast } from "sonner";
+import { loginSchema } from "./loginValidation";
+import ReCAPTCHA from "react-google-recaptcha";
+import { useState } from "react";
 
-export default function RegisterForm() {
+export default function LoginForm() {
   const form = useForm({
-    resolver: zodResolver(registrationSchema)
+    resolver: zodResolver(loginSchema)
   });
 
+  const [reCaptchaStatus, setReCaptchaStatus] = useState(false);
   const {
     formState: { isSubmitting },
   } = form;
 
-  const password = form.watch("password");
-  const passwordConfirm = form.watch("passwordConfirm");
-
   const onSubmit: SubmitHandler<FieldValues> = async (data) => {
     try {
-      const res = await registerUser(data);
+      const res = await loginUser(data);
       if (res?.success) {
         toast.success(res?.message);
       } else {
@@ -43,32 +43,29 @@ export default function RegisterForm() {
     }
   };
 
+  const handleRecaptcha =async(value: string|null)=>{
+    try {
+      const res = await reCaptchaTokenVerification(value!);
+      if(res?.success){
+          setReCaptchaStatus(true)
+      }
+    } catch (err:any) {
+      console.error(err)
+    }
+  }
   return (
     <div className="border-2 border-gray-300 rounded-xl flex-grow max-w-md w-full p-5">
       <div className="flex items-center space-x-4 ">
         <Logo />
         <div>
-          <h1 className="text-xl font-semibold">Register</h1>
+          <h1 className="text-xl font-semibold">Login</h1>
           <p className="font-extralight text-sm text-gray-600">
-            Join us today and start your journey!
+            Welcome back!
           </p>
         </div>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input {...field} value={field.value || ""} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="email"
@@ -95,38 +92,23 @@ export default function RegisterForm() {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="passwordConfirm"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} value={field.value || ""} />
-                </FormControl>
-
-                {passwordConfirm && password !== passwordConfirm ? (
-                  <FormMessage> Password does not match </FormMessage>
-                ) : (
-                  <FormMessage />
-                )}
-              </FormItem>
-            )}
-          />
-
+         <div className="flex my-3 w-full">
+         <ReCAPTCHA 
+          sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_CLIENT_KEY} 
+          onChange={handleRecaptcha}
+          className="mx-auto"/>
+         </div>
           <Button
-            disabled={passwordConfirm && password !== passwordConfirm}
-            type="submit"
-            className="mt-5 w-full"
-          >
-            {isSubmitting ? "Registering...." : "Register"}
+          disabled={reCaptchaStatus? false: true}
+           type="submit" className="mt-5 w-full">
+            {isSubmitting ? "Logging...." : "Login"}
           </Button>
         </form>
       </Form>
       <p className="text-sm text-gray-600 text-center my-3">
-        Already have an account ?
-        <Link href="/login" className="text-primary">
-          Login
+        Don't have any account ?
+        <Link href="/register" className="text-primary">
+          Register
         </Link>
       </p>
     </div>
