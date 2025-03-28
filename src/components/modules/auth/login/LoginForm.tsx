@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { loginSchema } from "./loginValidation";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/router";
 
 export default function LoginForm() {
   const form = useForm({
@@ -26,6 +28,11 @@ export default function LoginForm() {
   });
 
   const [reCaptchaStatus, setReCaptchaStatus] = useState(false);
+
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirectPath")
+  const router = useRouter();
+
   const {
     formState: { isSubmitting },
   } = form;
@@ -35,6 +42,11 @@ export default function LoginForm() {
       const res = await loginUser(data);
       if (res?.success) {
         toast.success(res?.message);
+        if(redirect){
+          router.push(redirect)
+        }else{
+          router.push("/profile");
+        }
       } else {
         toast.error(res?.message);
       }
@@ -94,7 +106,7 @@ export default function LoginForm() {
           />
          <div className="flex my-3 w-full">
          <ReCAPTCHA 
-          sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_CLIENT_KEY} 
+          sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_CLIENT_KEY!} 
           onChange={handleRecaptcha}
           className="mx-auto"/>
          </div>
